@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunPace - Pelacak Lari Real-Time</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00B4D8;
+            --secondary: #0077B6;
+            --dark: #03045E;
+            --light: #CAF0F8;
+            --accent: #FF9E00;
+            --danger: #FF5A5F;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .permission-box {
+            background: rgba(0, 180, 216, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 2px dashed var(--primary);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            background: #0096C7;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 180, 216, 0.4);
+        }
+
+        .tracker-container {
+            display: none;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 5px 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .pace-indicator {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .current-pace {
+            font-size: 1.8rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .pace-label {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .pace-description {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: var(--light);
+        }
+
+        .map-container {
+            height: 300px;
+            background: #555;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn-control {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-stop {
+            background: var(--danger);
+            color: white;
+            display: none;
+        }
+
+        .btn-reset {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .history {
+            margin-top: 30px;
+        }
+
+        .history h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-distance {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .history-time {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-value {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-running"></i> RunPace</h1>
+            <p>Pelacak Pace Lari Real-Time</p>
+        </header>
+
+        <div class="permission-box" id="permission-box">
+            <h3><i class="fas fa-map-marked-alt"></i> Izin Akses Lokasi</h3>
+            <p>Aktifkan izin lokasi untuk memulai pelacakan lari</p>
+            <button class="btn" id="enable-btn">
+                <i class="fas fa-location-arrow"></i> Izinkan Akses Lokasi
+            </button>
+        </div>
+
+        <div class="tracker-container" id="tracker-container">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Jarak</div>
+                    <div class="stat-value" id="distance">0.00</div>
+                    <div class="stat-label">kilometer</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Durasi</div>
+                    <div class="stat-value" id="duration">00:00</div>
+                    <div class="stat-label">menit:detik</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Kalori</div>
+                    <div class="stat-value" id="calories">0</div>
+                    <div class="stat-label">kcal</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Kecepatan</div>
+                    <div class="stat-value" id="speed">0.0</div>
+                    <div class="stat-label">km/jam</div>
+                </div>
+            </div>
+
+            <div class="pace-indicator">
+                <div class="current-pace" id="current-pace">0'00"</div>
+                <div class="pace-label">PACE SAAT INI</div>
+                <div class="pace-description" id="pace-description">-</div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-control btn-reset" id="reset-btn">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="btn-control btn-start" id="start-btn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="btn-control btn-stop" id="stop-btn">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="history">
+            <h2><i class="fas fa-history"></i> Riwayat Pace</h2>
+            <div id="history-list">
+                <!-- Riwayat akan muncul di sini -->
+                <div class="history-item">
+                    <div>
+                        <span class="history-distance">5'45" /km</span>
+                        <span class="history-time">Max: 4'20" - Min: 6'30"</span>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                <div class="history-item">
+                    <div>
+                        <span class="history-distance">6'12" /km</span>
+                        <span class="history-time">Max: 5'05" - Min: 7'40"</span>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS untuk peta -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <script>
+        // Variabel global
+        let map;
+        let polyline;
+        let positions = [];
+        let startTime;
+        let timerInterval;
+        let isTracking = false;
+        let totalDistance = 0;
+        let watchId;
+        let lastPositionTime = 0;
+        let lastPosition = null;
+        let paceHistory = [];
+        let currentSpeed = 0; // dalam km/jam
+
+        // Elemen UI
+        const permissionBox = document.getElementById('permission-box');
+        const trackerContainer = document.getElementById('tracker-container');
+        const enableBtn = document.getElementById('enable-btn');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const distanceEl = document.getElementById('distance');
+        const durationEl = document.getElementById('duration');
+        const caloriesEl = document.getElementById('calories');
+        const speedEl = document.getElementById('speed');
+        const currentPaceEl = document.getElementById('current-pace');
+        const paceDescriptionEl = document.getElementById('pace-description');
+
+        // Minta izin lokasi
+        enableBtn.addEventListener('click', () => {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        // Izin diberikan
+                        permissionBox.style.display = 'none';
+                        trackerContainer.style.display = 'block';
+                        initMap(position);
+                    },
+                    (error) => {
+                        alert('Akses lokasi diperlukan untuk menggunakan fitur ini');
+                        console.error("Error getting location:", error);
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                alert('Browser tidak mendukung geolokasi');
+            }
+        });
+
+        // Inisialisasi peta
+        function initMap(initialPosition) {
+            const { latitude, longitude } = initialPosition.coords;
+            
+            map = L.map('map').setView([latitude, longitude], 15);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Tambahkan marker posisi saat ini
+            L.marker([latitude, longitude]).addTo(map)
+                .bindPopup('Posisi Anda Sekarang')
+                .openPopup();
+            
+            // Inisialisasi polyline untuk rute
+            polyline = L.polyline([], { color: 'red' }).addTo(map);
+        }
+
+        // Mulai pelacakan
+        startBtn.addEventListener('click', () => {
+            if (!isTracking) {
+                isTracking = true;
+                startTime = new Date();
+                positions = [];
+                paceHistory = [];
+                lastPosition = null;
+                lastPositionTime = 0;
+                
+                // Mulai timer
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                // Mulai melacak posisi
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const now = Date.now();
+                        const { latitude, longitude, speed } = position.coords;
+                        const newPos = [latitude, longitude];
+                        
+                        // Tambahkan posisi baru
+                        positions.push(newPos);
+                        
+                        // Update polyline
+                        polyline.setLatLngs(positions);
+                        
+                        // Hitung jarak jika ada posisi sebelumnya
+                        if (positions.length > 1) {
+                            const lastPos = positions[positions.length - 2];
+                            const distance = calculateDistance(
+                                lastPos[0], lastPos[1],
+                                latitude, longitude
+                            );
+                            totalDistance += distance;
+                            distanceEl.textContent = totalDistance.toFixed(2);
+                            
+                            // Update kalori (estimasi: 60kcal/km untuk orang 70kg)
+                            const caloriesBurned = Math.round(totalDistance * 60);
+                            caloriesEl.textContent = caloriesBurned;
+                        }
+                        
+                        // Hitung kecepatan dan pace (jika ada data sebelumnya)
+                        if (lastPosition && lastPositionTime > 0) {
+                            const timeDiff = (now - lastPositionTime) / 1000; // dalam detik
+                            const distanceDiff = calculateDistance(
+                                lastPosition[0], lastPosition[1],
+                                latitude, longitude
+                            );
+                            
+                            if (timeDiff > 0 && distanceDiff > 0) {
+                                // Gunakan speed dari GPS jika tersedia (dalam m/s)
+                                if (speed !== null && !isNaN(speed)) {
+                                    currentSpeed = speed * 3.6; // convert ke km/jam
+                                } else {
+                                    // Hitung manual jika speed tidak tersedia
+                                    currentSpeed = (distanceDiff / timeDiff) * 3.6;
+                                }
+                                
+                                speedEl.textContent = currentSpeed.toFixed(1);
+                                
+                                // Hitung pace (waktu per km dalam menit:detik)
+                                if (currentSpeed > 0) {
+                                    const paceValue = 60 / currentSpeed; // menit per km
+                                    const paceMinutes = Math.floor(paceValue);
+                                    const paceSeconds = Math.round((paceValue - paceMinutes) * 60);
+                                    
+                                    const paceStr = `${paceMinutes}'${paceSeconds.toString().padStart(2, '0')}"`;
+                                    currentPaceEl.textContent = paceStr;
+                                    paceHistory.push(paceValue);
+                                    
+                                    // Update deskripsi pace
+                                    updatePaceDescription(paceValue);
+                                }
+                            }
+                        }
+                        
+                        // Simpan posisi terakhir untuk perhitungan berikutnya
+                        lastPosition = newPos;
+                        lastPositionTime = now;
+                        
+                        // Pusatkan peta ke posisi terbaru
+                        map.setView(newPos);
+                    },
+                    (error) => {
+                        console.error("Error watching position:", error);
+                    },
+                    { 
+                        enableHighAccuracy: true,
+                        maximumAge: 0,
+                        timeout: 5000
+                    }
+                );
+                
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'flex';
+            }
+        });
+
+        // Update deskripsi pace berdasarkan nilai
+        function updatePaceDescription(paceValue) {
+            let description = "";
+            let emoji = "";
+            
+            if (paceValue < 4.5) { // Pace < 4'30" /km
+                description = "Sangat Cepat (Elite)";
+                emoji = "⚡";
+            } else if (paceValue < 5.5) { // Pace < 5'30" /km
+                description = "Cepat (Advanced)";
+                emoji = "🏃‍♂️";
+            } else if (paceValue < 6.5) { // Pace < 6'30" /km
+                description = "Sedang (Intermediate)";
+                emoji = "👟";
+            } else if (paceValue < 7.5) { // Pace < 7'30" /km
+                description = "Santai (Beginner)";
+                emoji = "🚶‍♂️";
+            } else {
+                description = "Sangat Santai";
+                emoji = "🐢";
+            }
+            
+            paceDescriptionEl.textContent = `${emoji} ${description}`;
+        }
+
+        // Berhenti pelacakan
+        stopBtn.addEventListener('click', () => {
+            if (isTracking) {
+                isTracking = false;
+                clearInterval(timerInterval);
+                navigator.geolocation.clearWatch(watchId);
+                
+                startBtn.style.display = 'flex';
+                stopBtn.style.display = 'none';
+                
+                // Simpan ke riwayat
+                saveToHistory();
+            }
+        });
+
+        // Reset pelacakan
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Apakah Anda yakin ingin mereset pelacakan?')) {
+                isTracking = false;
+                clearInterval(timerInterval);
+                if (watchId) navigator.geolocation.clearWatch(watchId);
+                
+                // Reset semua nilai
+                totalDistance = 0;
+                positions = [];
+                paceHistory = [];
+                currentSpeed = 0;
+                lastPosition = null;
+                lastPositionTime = 0;
+                polyline.setLatLngs([]);
+                
+                distanceEl.textContent = '0.00';
+                durationEl.textContent = '00:00';
+                caloriesEl.textContent = '0';
+                speedEl.textContent = '0.0';
+                currentPaceEl.textContent = '0\'00"';
+                paceDescriptionEl.textContent = '-';
+                
+                startBtn.style.display = 'flex';
+                stopBtn.style.display = 'none';
+            }
+        });
+
+        // Update timer
+        function updateTimer() {
+            const now = new Date();
+            const elapsed = new Date(now - startTime);
+            const minutes = elapsed.getUTCMinutes().toString().padStart(2, '0');
+            const seconds = elapsed.getUTCSeconds().toString().padStart(2, '0');
+            
+            durationEl.textContent = `${minutes}:${seconds}`;
+        }
+
+        // Hitung jarak antara dua koordinat (dalam km)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius bumi dalam km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Simpan ke riwayat (simulasi)
+        function saveToHistory() {
+            if (paceHistory.length === 0) return;
+            
+            // Hitung pace rata-rata, maksimum, dan minimum
+            const avgPace = paceHistory.reduce((a, b) => a + b, 0) / paceHistory.length;
+            const maxPace = Math.min(...paceHistory); // Pace tercepat (nilai terkecil)
+            const minPace = Math.max(...paceHistory); // Pace terlambat (nilai terbesar)
+            
+            const avgMinutes = Math.floor(avgPace);
+            const avgSeconds = Math.round((avgPace - avgMinutes) * 60);
+            
+            const maxMinutes = Math.floor(maxPace);
+            const maxSeconds = Math.round((maxPace - maxMinutes) * 60);
+            
+            const minMinutes = Math.floor(minPace);
+            const minSeconds = Math.round((minPace - minMinutes) * 60);
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            const timeStr = durationEl.textContent;
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+                <div>
+                    <span class="history-distance">${avgMinutes}'${avgSeconds.toString().padStart(2, '0')}" /km</span>
+                    <span class="history-time">Max: ${maxMinutes}'${maxSeconds.toString().padStart(2, '0')}" - Min: ${minMinutes}'${minSeconds.toString().padStart(2, '0')}"</span>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            `;
+            
+            document.getElementById('history-list').prepend(historyItem);
+        }
+    </script>
+</body>
+</html>
